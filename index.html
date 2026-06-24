@@ -43,6 +43,31 @@ header {
   font-size: 13px; font-weight: 700; color: #888;
   text-transform: uppercase; letter-spacing: .6px; margin-bottom: 14px;
 }
+.bu-section { margin-bottom: 12px; }
+.bu-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; border-radius: 10px; cursor: pointer;
+  font-size: 13px; font-weight: 800; color: white;
+  user-select: none; transition: opacity .2s;
+}
+.bu-header:hover { opacity: .88; }
+.bu-header .bu-chevron { margin-left: auto; font-size: 11px; transition: transform .25s; }
+.bu-header.collapsed .bu-chevron { transform: rotate(-90deg); }
+.bu-empresarial { background: linear-gradient(90deg,#1a4a8a,#2166b8); }
+.bu-pessoas     { background: linear-gradient(90deg,#6a1a8a,#9b3dbf); }
+.bu-vendas      { background: linear-gradient(90deg,#1a7a3a,#2ecc52); }
+.bu-stats { font-size: 11px; opacity: .85; font-weight: 500; }
+.bu-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+  gap: 8px; padding: 10px 0 4px; transition: all .25s;
+}
+.bu-body.collapsed { display: none; }
+.sankhya-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+  gap: 8px; margin-bottom: 12px;
+}
 .empresa-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -170,6 +195,14 @@ tr:last-child td { border-bottom: none; }
 .pill { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; }
 .p-done { background: #e8faf0; color: #1a7a3a; }
 .p-no   { background: #fdecea; color: #a00; }
+.btn-export {
+  font-size: 11px; padding: 4px 10px; border: 1.5px solid #e74c3c;
+  border-radius: 6px; cursor: pointer; font-weight: 700; background: transparent;
+  color: #e74c3c; white-space: nowrap; transition: all .2s;
+}
+.btn-export:hover { background: #e74c3c; color: white; }
+.btn-export-done { border-color: #2ecc52; color: #1a7a3a; }
+.btn-export-done:hover { background: #2ecc52; color: white; }
 </style>
 </head>
 <body>
@@ -194,7 +227,7 @@ tr:last-child td { border-bottom: none; }
 <!-- RESUMO POR EMPRESA -->
 <div class="summary-section">
   <h2>📊 Visão geral por empresa — clique para filtrar</h2>
-  <div class="empresa-grid" id="empresa-grid"></div>
+  <div id="empresa-grid"></div>
 </div>
 
 <div class="filter-bar">
@@ -212,7 +245,11 @@ tr:last-child td { border-bottom: none; }
         <div class="card-title">⚖️ Trilha Compliance</div>
         <div class="card-sub" id="sub-compliance">Conectando ao formulário…</div>
       </div>
-      <div class="badge badge-g" id="pct-compliance">0%</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div class="badge badge-g" id="pct-compliance">0%</div>
+        <button class="btn-export" onclick="exportCSV('compliance','pendentes')">⬇ Pendentes</button>
+        <button class="btn-export btn-export-done" onclick="exportCSV('compliance','concluidos')">⬇ Concluídos</button>
+      </div>
     </div>
     <div class="stats-grid">
       <div class="stat-box"><div class="stat-num n-total" id="total-compliance">—</div><div class="stat-label">Inscritos</div></div>
@@ -245,7 +282,11 @@ tr:last-child td { border-bottom: none; }
         <div class="card-title">🛡️ Trilha Guardiões de Dados</div>
         <div class="card-sub" id="sub-dados">Conectando ao formulário…</div>
       </div>
-      <div class="badge badge-b" id="pct-dados">0%</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div class="badge badge-b" id="pct-dados">0%</div>
+        <button class="btn-export" onclick="exportCSV('dados','pendentes')">⬇ Pendentes</button>
+        <button class="btn-export btn-export-done" onclick="exportCSV('dados','concluidos')">⬇ Concluídos</button>
+      </div>
     </div>
     <div class="stats-grid">
       <div class="stat-box"><div class="stat-num n-total" id="total-dados">—</div><div class="stat-label">Inscritos</div></div>
@@ -288,22 +329,64 @@ function loadURLs() {
 }
 
 // ── EMPRESA CARDS ──────────────────────────────────────────
+const BUS = [
+  { id: 'empresarial', label: '🏢 Empresarial', cls: 'bu-empresarial',
+    empresas: ['Asis','Espresso','Lincros','Magis5'] },
+  { id: 'pessoas',     label: '👥 Pessoas',     cls: 'bu-pessoas',
+    empresas: ['Mindsight','Pontotel','Vixting'] },
+  { id: 'vendas',      label: '📈 Vendas',      cls: 'bu-vendas',
+    empresas: ['Flowbiz','Meetime','Neppo','Ploomes'] }
+];
+const buCollapsed = { empresarial: false, pessoas: false, vendas: false };
+
+function empCardHtml(emp) {
+  var cr = getEmpStats('compliance', emp);
+  var dr = getEmpStats('dados', emp);
+  var isActive = activeEmp === emp;
+  return '<div class="emp-card '+(isActive?'active':'')+'" onclick="setFilter(''+emp+'')">'+
+    '<div class="emp-name">'+emp+'</div>'+
+    '<div class="emp-stats">'+
+      '<span>⚖️ <span class="emp-done">'+cr.done+'</span>/<span style="color:#aaa">'+cr.total+'</span></span>'+
+      '<span>🛡️ <span class="emp-done">'+dr.done+'</span>/<span style="color:#aaa">'+dr.total+'</span></span>'+
+    '</div>'+
+    '<div class="emp-bar"><div class="emp-bar-fill" style="width:'+cr.pct+'%"></div></div>'+
+    '<div class="emp-pct">C: '+cr.pct+'% · G: '+dr.pct+'%</div>'+
+  '</div>';
+}
+
+function buTotals(empresas) {
+  var tot=0,don=0;
+  empresas.forEach(function(emp){
+    var s=getEmpStats('compliance',emp); tot+=s.total; don+=s.done;
+  });
+  var pct=tot?Math.round(don/tot*100):0;
+  return don+'/'+tot+' ('+pct+'%)';
+}
+
 function renderEmpresaGrid() {
-  const grid = document.getElementById('empresa-grid');
-  grid.innerHTML = EMPRESAS.map(function(emp) {
-    const cr = getEmpStats('compliance', emp);
-    const dr = getEmpStats('dados', emp);
-    const isActive = activeEmp === emp;
-    return `<div class="emp-card ${isActive ? 'active' : ''}" onclick="setFilter('${emp}')">
-      <div class="emp-name">${emp}</div>
-      <div class="emp-stats">
-        <span>⚖️ <span class="emp-done">${cr.done}</span>/<span style="color:#aaa">${cr.total}</span></span>
-        <span>🛡️ <span class="emp-done">${dr.done}</span>/<span style="color:#aaa">${dr.total}</span></span>
-      </div>
-      <div class="emp-bar"><div class="emp-bar-fill" style="width:${cr.pct}%"></div></div>
-      <div class="emp-pct">C: ${cr.pct}% · G: ${dr.pct}%</div>
-    </div>`;
-  }).join('');
+  var grid = document.getElementById('empresa-grid');
+  // Sankhya standalone
+  var html = '<div class="sankhya-row">'+empCardHtml('Sankhya')+'</div>';
+  // BU sections
+  BUS.forEach(function(bu) {
+    var col = buCollapsed[bu.id];
+    html += '<div class="bu-section">'+
+      '<div class="bu-header '+bu.cls+(col?' collapsed':'')+'" onclick="toggleBU(''+bu.id+'')">'+
+        '<span>'+bu.label+'</span>'+
+        '<span class="bu-stats">'+buTotals(bu.empresas)+'</span>'+
+        '<span class="bu-chevron">▼</span>'+
+      '</div>'+
+      '<div class="bu-body'+(col?' collapsed':'')+'" id="bu-body-'+bu.id+'">'+
+        bu.empresas.map(empCardHtml).join('')+
+      '</div>'+
+    '</div>';
+  });
+  grid.innerHTML = html;
+}
+
+function toggleBU(id) {
+  buCollapsed[id] = !buCollapsed[id];
+  renderEmpresaGrid();
 }
 
 function getEmpStats(trilha, emp) {
@@ -441,6 +524,136 @@ function switchTab(el) {
   el.classList.add('active');
   document.getElementById('tc-' + trilha + '-' + tab).classList.add('active');
   renderTable(trilha);
+}
+
+// ── EXPORT XLSX ───────────────────────────────────────────
+function exportCSV(trilha, tipo) {
+  var rows = BASE[trilha];
+  if (activeEmp) rows = rows.filter(function(r){ return r.emp === activeEmp; });
+  if (tipo === 'pendentes')  rows = rows.filter(function(r){ return r.t < 1.0; });
+  if (tipo === 'concluidos') rows = rows.filter(function(r){ return r.t >= 1.0; });
+
+  var trilhaLabel = trilha === 'compliance' ? 'Compliance' : 'Guardioes_de_Dados';
+  var tipoLabel   = tipo === 'pendentes' ? 'Pendentes' : 'Concluidos';
+  var empLabel    = activeEmp ? '_' + activeEmp : '';
+  var filename    = trilhaLabel + '_' + tipoLabel + empLabel + '.xlsx';
+
+  var header   = ['Nome', 'Email', 'Empresa', 'Status'];
+  var dataRows = rows.map(function(r) {
+    return [r.n, r.e, r.emp, r.t >= 1.0 ? 'Concluído' : 'Pendente'];
+  });
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function col(i) { return String.fromCharCode(65 + i); }
+
+  var headerRowXml = '<row r="1">' + header.map(function(h,i){
+    return '<c r="'+col(i)+'1" t="inlineStr" s="1"><is><t>'+esc(h)+'</t></is></c>';
+  }).join('') + '</row>';
+
+  var dataXml = dataRows.map(function(row, ri){
+    return '<row r="'+(ri+2)+'">' + row.map(function(cell,ci){
+      return '<c r="'+col(ci)+(ri+2)+'" t="inlineStr"><is><t>'+esc(cell)+'</t></is></c>';
+    }).join('') + '</row>';
+  }).join('');
+
+  var colWidths = [40,35,15,12].map(function(w,i){
+    return '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>';
+  }).join('');
+
+  var ws = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+    +'<cols>'+colWidths+'</cols>'
+    +'<sheetData>'+headerRowXml+dataXml+'</sheetData></worksheet>';
+
+  var wb = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+    +'<sheets><sheet name="Dados" sheetId="1" r:id="rId1"/></sheets></workbook>';
+
+  var styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+    +'<fonts><font><b/><sz val="11"/><color rgb="FFFFFFFF"/></font><font><sz val="11"/></font></fonts>'
+    +'<fills><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>'
+    +'<fill><patternFill patternType="solid"><fgColor rgb="FF0F1F3D"/></patternFill></fill></fills>'
+    +'<borders><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
+    +'<cellStyleXfs count="1"><xf numFmtId="0" fontId="1" fillId="0" borderId="0"/></cellStyleXfs>'
+    +'<cellXfs>'
+    +'<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0"/>'
+    +'<xf numFmtId="0" fontId="0" fillId="2" borderId="0" xfId="0"/>'
+    +'</cellXfs></styleSheet>';
+
+  var wbRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+    +'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+    +'<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
+    +'</Relationships>';
+
+  var rootRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+    +'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+    +'</Relationships>';
+
+  var ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+    +'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+    +'<Default Extension="xml" ContentType="application/xml"/>'
+    +'<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+    +'<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+    +'<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
+    +'</Types>';
+
+  var zip = buildZip({
+    '[Content_Types].xml': ct,
+    '_rels/.rels': rootRels,
+    'xl/workbook.xml': wb,
+    'xl/_rels/workbook.xml.rels': wbRels,
+    'xl/worksheets/sheet1.xml': ws,
+    'xl/styles.xml': styles
+  });
+
+  var blob = new Blob([zip], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function buildZip(files) {
+  function u16(n){ return [n&0xff,(n>>8)&0xff]; }
+  function u32(n){ return [n&0xff,(n>>8)&0xff,(n>>16)&0xff,(n>>24)&0xff]; }
+  function strBytes(s){
+    var a=[], b=unescape(encodeURIComponent(s));
+    for(var i=0;i<b.length;i++) a.push(b.charCodeAt(i)&0xff);
+    return a;
+  }
+  function crc32(bytes){
+    var c=-1;
+    for(var i=0;i<bytes.length;i++){
+      var b=bytes[i];
+      for(var j=0;j<8;j++){c=(c>>>1)^((c^b)&1?0xEDB88320:0);b>>=1;}
+    }
+    return(c^-1)>>>0;
+  }
+  var parts=[],cd=[],off=0;
+  Object.keys(files).forEach(function(name){
+    var data=strBytes(files[name]), nb=strBytes(name);
+    var crc=crc32(data), sz=data.length;
+    var local=[0x50,0x4B,3,4,20,0,0,0,0,0,0,0,0,0]
+      .concat(u32(crc)).concat(u32(sz)).concat(u32(sz))
+      .concat(u16(nb.length)).concat([0,0]).concat(nb).concat(data);
+    var cde=[0x50,0x4B,1,2,20,0,20,0,0,0,0,0,0,0,0,0]
+      .concat(u32(crc)).concat(u32(sz)).concat(u32(sz))
+      .concat(u16(nb.length)).concat([0,0,0,0,0,0,0,0,0,0,0,0])
+      .concat(u32(off)).concat(nb);
+    parts.push(local); cd.push(cde); off+=local.length;
+  });
+  var cdb=[].concat.apply([],cd);
+  var n=cd.length;
+  var eocd=[0x50,0x4B,5,6,0,0,0,0]
+    .concat(u16(n)).concat(u16(n))
+    .concat(u32(cdb.length)).concat(u32(off)).concat([0,0]);
+  return new Uint8Array([].concat.apply([],parts).concat(cdb).concat(eocd));
 }
 
 // ── INIT ───────────────────────────────────────────────────
