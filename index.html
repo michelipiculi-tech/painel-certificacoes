@@ -371,7 +371,7 @@ function renderEmpresaGrid() {
   BUS.forEach(function(bu) {
     var col = buCollapsed[bu.id];
     html += '<div class="bu-section">'+
-      '<div class="bu-header '+bu.cls+(col?' collapsed':'')+'" onclick="toggleBU(''+bu.id+'')">'+
+      '<div class="bu-header '+bu.cls+(col?' collapsed':'')+'" onclick="toggleBU(\''+bu.id+'\')">'+ 
         '<span>'+bu.label+'</span>'+
         '<span class="bu-stats">'+buTotals(bu.empresas)+'</span>'+
         '<span class="bu-chevron">▼</span>'+
