@@ -37,35 +37,35 @@ header {
 
 /* ── EMPRESA SUMMARY ── */
 .summary-section {
-  padding: 20px 32px 4px;
+  padding: 10px 32px 2px;
 }
 .summary-section h2 {
-  font-size: 13px; font-weight: 700; color: #888;
-  text-transform: uppercase; letter-spacing: .6px; margin-bottom: 14px;
+  font-size: 11px; font-weight: 700; color: #888;
+  text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px;
 }
 .empresa-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 10px; margin-bottom: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 6px; margin-bottom: 6px;
 }
 .emp-card {
-  background: #fff; border-radius: 10px;
-  padding: 12px 14px; cursor: pointer;
-  box-shadow: 0 1px 8px rgba(15,31,61,.07);
+  background: #fff; border-radius: 8px;
+  padding: 7px 10px; cursor: pointer;
+  box-shadow: 0 1px 6px rgba(15,31,61,.07);
   border: 2px solid transparent; transition: all .2s;
   position: relative; overflow: hidden;
 }
 .emp-card:hover { border-color: #2ecc52; transform: translateY(-1px); }
 .emp-card.active { border-color: #2ecc52; background: #f5fff8; }
 .emp-card.active-dados { border-color: #0f8ae0; background: #f0f7ff; }
-.emp-name { font-size: 13px; font-weight: 700; color: #0f1f3d; margin-bottom: 6px; }
-.emp-stats { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 6px; }
+.emp-name { font-size: 11px; font-weight: 700; color: #0f1f3d; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.emp-stats { display: flex; justify-content: space-between; font-size: 10px; color: #888; margin-bottom: 4px; }
 .emp-done { color: #2ecc52; font-weight: 700; }
 .emp-pend { color: #e74c3c; font-weight: 700; }
-.emp-bar { height: 5px; background: #eee; border-radius: 4px; overflow: hidden; }
+.emp-bar { height: 4px; background: #eee; border-radius: 4px; overflow: hidden; }
 .emp-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg,#27ae47,#2ecc52); transition: width .8s; }
 .emp-bar-fill-b { background: linear-gradient(90deg,#0a5a99,#0f8ae0); }
-.emp-pct { font-size: 11px; font-weight: 800; color: #0f1f3d; margin-top: 4px; text-align: right; }
+.emp-pct { font-size: 10px; font-weight: 800; color: #0f1f3d; margin-top: 3px; text-align: right; }
 .emp-card .emp-all-badge {
   position: absolute; top: 6px; right: 8px;
   font-size: 9px; background: #2ecc52; color: white;
