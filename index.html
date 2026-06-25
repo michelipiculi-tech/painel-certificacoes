@@ -438,8 +438,8 @@ function renderTab(trilha) {
     var tbody = document.getElementById('tb-' + trilha + '-' + t);
     if (tbody) tbody.innerHTML = filtered.map(function(r) {
       var st = r.t >= 1.0
-        ? '<span style="color:#2ecc52;font-weight:700;">✔ Concluído</span>'
-        : '<span style="color:#e74c3c;font-weight:700;">✗ Pendente</span>';
+        ? '<span style="color:#2ecc52;font-weight:700;white-space:nowrap;">✔ Concluído</span>'
+        : '<span style="color:#e74c3c;font-weight:700;white-space:nowrap;">✗ Pendente</span>';
       return '<tr><td>'+r.n+'</td><td>'+r.e+'</td><td>'+st+'</td></tr>';
     }).join('');
 
